@@ -3,8 +3,10 @@ package com.if5.todoapp.models.dtos;
 import java.util.Collection;
 import java.util.Date;
 
+import javax.persistence.Column;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.if5.todoapp.models.entities.AppTask;
@@ -22,7 +24,9 @@ public class AppTaskDto {
 
 
 	private Long id;
+	@NotNull(message = "le lebelle d'une tache ne peut etre null")
 	private String taskTitle;
+	@NotNull(message = "la description d'une tache ne peut etre null")
 	private String descriptionTask;
 	private Date startDate;
 	private Date endDate;

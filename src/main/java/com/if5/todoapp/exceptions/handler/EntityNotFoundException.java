@@ -1,6 +1,6 @@
-package com.if5.todoapp.exceptions.Ex;
+package com.if5.todoapp.exceptions.handler;
 
-public class EntityNotFoundException extends RuntimeException{
+public class EntityNotFoundException extends Exception{
 
 	private ErrorCodes errorCodes;
 	
@@ -10,9 +10,11 @@ public class EntityNotFoundException extends RuntimeException{
 		return errorCodes;
 	}
 	
+	
 	public EntityNotFoundException(String message) {
 		super(message);
 	}
+	
 	public EntityNotFoundException(String message, Throwable cause) {
 		super(message,cause);
 	}
@@ -21,6 +23,8 @@ public class EntityNotFoundException extends RuntimeException{
 		super(message,cause);
 		this.errorCodes = errorCodes; 
 	}
+	
+	
 	public EntityNotFoundException(String message, ErrorCodes errorCodes) {
 		super(message);
 		this.errorCodes = errorCodes; 

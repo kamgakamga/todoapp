@@ -1,4 +1,4 @@
-package com.if5.todoapp.exceptions.Ex;
+package com.if5.todoapp.exceptions.handler;
 
 public enum ErrorCodes {
 	APPUSER_NOT_FOUND(10),

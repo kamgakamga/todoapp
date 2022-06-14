@@ -1,12 +1,19 @@
 package com.if5.todoapp.services.implementations;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.config.Task;
 import org.springframework.stereotype.Service;
 
+import com.if5.todoapp.exceptions.handler.EntityNotFoundException;
+import com.if5.todoapp.exceptions.handler.InvalidEntityException;
 import com.if5.todoapp.models.dtos.AppTaskDto;
+import com.if5.todoapp.models.dtos.NumberTaskDto;
 import com.if5.todoapp.models.entities.AppTask;
 import com.if5.todoapp.models.entities.TaskStatus;
 import com.if5.todoapp.models.mappers.AppTaskMapper;
@@ -21,7 +28,7 @@ public class TaskServiceImpl implements TaskServiceInterface{
 	
 	
 	@Override
-	public AppTask saveTask(AppTaskDto appTaskDto) {
+	public AppTask saveTask(AppTaskDto appTaskDto) throws InvalidEntityException {
 		
 		AppTask tasks = appTaskMapper.appTaskDtoToAppTask(appTaskDto);
 		
@@ -29,21 +36,15 @@ public class TaskServiceImpl implements TaskServiceInterface{
 			  Date d2 = tasks.getEndDate();
 			     if(d1.after(d2))
 			    	 {
-			    	 throw new RuntimeException("la date de debut ne peut etre inferieur a la date de fin de la tache");
+			    	 throw new InvalidEntityException("La date debutde la tache "+ d1
+			    			 +" doit etre après la date de fin de la tache"+ d2);
 			    	 }
-			     if(d2.before(new Date()))
-			     {
-			    	 throw new RuntimeException("la date de fin ne doit pas etre avant la date courante");
-			     }
-			 
-			
 				tasks.setStartDate(tasks.getStartDate());
 				tasks.setEndDate(tasks.getEndDate());
 				tasks.setCreatedAT(new Date());
 				tasks.setTaskStatus(TaskStatus.EN_ATTENTE);
 				tasks.setRealiser(false);
-	         
-		
+	
 		return appTaskRepository.save(tasks);
 	}
 
@@ -83,7 +84,7 @@ public class TaskServiceImpl implements TaskServiceInterface{
 	  
 	
 	  @Override 
-	  public AppTask updateTask(Long id,  AppTaskDto appTaskDto) {
+	  public AppTask updateTask(Long id,  AppTaskDto appTaskDto) throws InvalidEntityException {
 	        AppTask task = appTaskRepository.findById(id).get();
 	       
 	        if(task == null) throw new RuntimeException("cette tache n'existe pas");
@@ -92,8 +93,10 @@ public class TaskServiceImpl implements TaskServiceInterface{
 	           Date d1 = tasks.getStartDate();
 			   Date d2 = tasks.getEndDate();
 			  
-			   if(d1.after(d2))throw new RuntimeException("la date de debut ne peut etre inferieur a la date de fin de la tache");
-	       
+			   if(d1.after(d2)) {
+				   throw new InvalidEntityException("la date de debut ne peut etre "
+				   		+ "inferieur a la date de fin de la tache");
+			   }
 			        task.setTaskTitle(tasks.getTaskTitle());
 			        task.setDescriptionTask(tasks.getDescriptionTask());
 			        task.setStartDate(tasks.getStartDate());
@@ -108,21 +111,40 @@ public class TaskServiceImpl implements TaskServiceInterface{
 	  }
 
 	@Override
-	public void showDetailsOfAtask(Long id) {
+	public void showDetailsOfAtask(Long id) throws EntityNotFoundException {
+	
 		AppTask task = appTaskRepository.findById(id).get();
 		
+		if(task ==null) {
+			throw new EntityNotFoundException("La tache avec l'ID " +id+ " n'existe pas en BDD") ;	
+		}	
 		List<String>  details = new ArrayList<String>();
 		   details.add(task.getTaskTitle());
 		   details.add(task.getDescriptionTask());
 		   details.add(task.getReminderPlace());
 	}
+	
 
 	@Override
-	public List<AppTask> numberOfTasksPerformedInAPeriod(Date debut, Date fin) {
+	public int numberOfTasksPerformedInAPeriod(NumberTaskDto numberTaskDto) {
+				
+		/*
+		 * List<AppTask> allTask = appTaskRepository.findAll(); List<AppTask>
+		 * appTaskRealise = allTask.stream().filter(elt ->
+		 * elt.getStartDate().before(numberTaskDto.getStartDate()) &&
+		 * elt.getEndDate().after(numberTaskDto.getEndDate()) &&
+		 * elt.getTaskStatus().equals(TaskStatus.REALISEE))
+		 * .collect(Collectors.toList());
+		 */
 		
-		return null;
+		Date startDate = numberTaskDto.getStartDate();
+		Date endDate = numberTaskDto.getEndDate();
+		List<AppTask> appTaskRealise =appTaskRepository.findAllByTaskStatus(startDate,endDate );
+		
+		return appTaskRealise.size();
 	}
-
+	
+	
 	@Override
 	public void CalculateTheNumberOfWorkingHours(Date debut, Date fin) {
 		// TODO Auto-generated method stub
@@ -168,30 +190,36 @@ public class TaskServiceImpl implements TaskServiceInterface{
 			
 		}else
 		if((startDate.before(actualDate)) && (statut == TaskStatus.REALISEE)) {
-			appTask.setTaskStatus(statut); 
 			
-			appTaskRepository.save(appTask);
-			System.out.print("--------------------------------------------------------------------------------");
-			System.out.print("-------------------------------REALISER-------------------------------------------------");
+			List<AppTask> subTasks = (List<AppTask>) appTask.getSubStasks();
+			
+			int compteur = 0;
+			
+			for(AppTask task: subTasks) {
+			
+				if(task.getTaskStatus() != TaskStatus.REALISEE) {
+					compteur += compteur;
+				}		
+			}
+			
+			if(compteur == 0 ) {
+				appTask.setTaskStatus(statut); 
+				appTaskRepository.save(appTask);
+ 			}
 		}else
 		if((startDate.before(actualDate)) && (endDate.after(actualDate)) && (statut == TaskStatus.EN_COURS )) {
 			appTask.setTaskStatus(statut);	
 			appTaskRepository.save(appTask);
-			System.out.print("--------------------------------------------------------------------------------");
-			System.out.print("-------------------------------EN_COURS-------------------------------------------------");
+			
 		}else
 		if((endDate.before(actualDate)) && appTask.getTaskStatus() != TaskStatus.REALISEE) {
 			appTask.setTaskStatus(TaskStatus.EN_RETARD);
 			appTaskRepository.save(appTask);
-			System.out.print("--------------------------------------------------------------------------------");
-			System.out.print("-------------------------------EN RETARD-------------------------------------------------");
 		}
 			
 		else {
 			appTask.setTaskStatus(TaskStatus.ANNULE);
 			appTaskRepository.save(appTask);
-			System.out.print("--------------------------------------------------------------------------------");
-			System.out.print("-------------------------------ANNULE-------------------------------------------------");
 		}
 	}
 	
@@ -213,17 +241,15 @@ public class TaskServiceImpl implements TaskServiceInterface{
 	}
 
 	@Override
-	public List<AppTask> taskAccordingToStatus(TaskStatus status) {
+	public List<AppTask> taskAccordingToStatus(TaskStatus status)  {
 		
 		List<AppTask> listOfTask = new ArrayList<>();
-		 System.out.println("STATUT ===========> "+ status);
-		listOfTask = appTaskRepository.findAllByTaskStatus(status);
+		 
+		 listOfTask = appTaskRepository.findAllByTaskStatus(status);
 		
 		 System.out.println(listOfTask);
 		listOfTask.forEach(task -> System.out.println(task));
 		return listOfTask;
+		
 	}
-	 
-	 
-
 }

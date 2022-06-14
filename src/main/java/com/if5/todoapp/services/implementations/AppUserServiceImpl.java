@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.if5.todoapp.exceptions.handler.InvalidEntityException;
 import com.if5.todoapp.models.dtos.AppUserDto;
 import com.if5.todoapp.models.entities.Role;
 import com.if5.todoapp.models.entities.AppUser;
@@ -46,12 +47,16 @@ public class AppUserServiceImpl implements AppUserServiceInterface {
 	}
 
 	@Override
-	public AppUser getUser(Long id) {
+	public AppUser getUser(Long id) throws InvalidEntityException {
+		
 		Optional<AppUser> optionalUser = appUserRepository.findById(id);
-		if (optionalUser == null)
-			throw new RuntimeException("cet utilisateur n'existe pas...");
-		AppUser appUser = optionalUser.get();
-		return appUser;
+		if (optionalUser.isEmpty()) {
+			throw new InvalidEntityException("l'utlisateeur avec l'ID "+ id +" n'existe pas!");
+		}else {
+			AppUser appUser = optionalUser.get();
+			return appUser;
+		}	
+		
 	}
 
 	@Override
@@ -77,7 +82,8 @@ public class AppUserServiceImpl implements AppUserServiceInterface {
 
 	
 	  @Override 
-	  public AppUser findByUsername(String userName) {  
+	  public AppUser findByUsername(String userName) {
+		  
 		  return appUserRepository.findByUsername(userName);
 	  }
 	 

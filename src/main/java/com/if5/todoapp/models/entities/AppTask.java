@@ -48,7 +48,7 @@ public class AppTask {
 	
 	private Double longitude;
 	
-	@Enumerated(EnumType.STRING)
+	//@Enumerated(EnumType.STRING)
 	private TaskStatus taskStatus;
 	
 	@Temporal(TemporalType.TIMESTAMP)
